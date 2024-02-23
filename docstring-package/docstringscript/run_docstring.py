@@ -159,7 +159,7 @@ def traverse_folders_for_sphinx_api(folder_paths, output_file,base_path):
     folder_path = os.path.dirname(output_file)
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
-    with open(output_file, 'w') as rst_file:
+    with open(output_file, 'a') as rst_file:
 
         for folder_path in folder_paths:
             for root, _, files in os.walk(folder_path):
@@ -190,5 +190,4 @@ def traverse_folders_for_sphinx_api(folder_paths, output_file,base_path):
 
 
 traverse_folders_for_sphinx_api(folder_paths_list, rst_file_path,directory_path)
-
 

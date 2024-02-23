@@ -16,7 +16,8 @@ docs_source_folder = 'docstring-package/docs'
 
 
 # Copy source folder to Python repository
-shutil.copytree(docs_source_folder, destination_repo,dirs_exist_ok=True)
+if not os.path.exists(destination_repo+'/source/package'):
+    shutil.copytree(docs_source_folder, destination_repo,dirs_exist_ok=True)
 
 # Copy docstring script
 docs_script_folder = 'docstring-package/docstringscript'
