@@ -4,19 +4,14 @@
 import multiprocessing
 import os
 import ast
-import importlib
-import importlib.util
+import sys
 import time
-from importlib import import_module
 from inspect import getsource
-
-import threading
 
 import requests
 
 # Specify the directory path to scan
-#directory_path = 'library-management-system'
-directory_path = input("Please enter the repository path: ")
+directory_path = sys.argv[1]
 
 def get_multiple_inputs():
     input_list = []
@@ -145,30 +140,6 @@ scan_directory_for_adding_docstring(directory_path)
 
 # To generate API for Sphinx documentation
 
-# def generate_rst_file_and_add_docstings(folder_paths, output_file):
-#     folder_path = os.path.dirname(output_file)
-#     if not os.path.exists(folder_path):
-#         os.makedirs(folder_path)
-#
-#     with open(output_file, 'w') as rst_file:
-#         for folder_path in folder_paths:
-#             folder_name = os.path.basename(folder_path)
-#             rst_file.write(f'============\n{folder_name}\n============\n\n')
-#
-#             for root, _, files in os.walk(folder_path):
-#                 for file in files:
-#                     if file.endswith('.py'):
-#                         file_name = os.path.splitext(file)[0]
-#                         rst_file.write(
-#                             f'........................\n{folder_name}.{file_name}\n........................\n\n')
-#                         rst_file.write(f'.. automodule:: {folder_name}.{file_name}\n   :members:\n\n')
-#         print("Generated API for sphinx documentation")
-#         # file_path = os.path.join(root, file)
-#         # multiprocessing.Process(target=update_file_with_docstrings, args=(file_path,)).start()
-
-
-# generate_rst_file_and_add_docstings(folder_paths_list, rst_file_path)
-
 
 def generate_rst(folder_path, file_name):
     rst_content = f"........................................\n{file_name}\n........................................\n\n.. automodule:: {file_name}\n   :members:\n\n"
@@ -188,7 +159,6 @@ def traverse_folders_for_sphinx_api(folder_paths, output_file,base_path):
     folder_path = os.path.dirname(output_file)
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
-        print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',folder_paths,output_file,base_path)
     with open(output_file, 'w') as rst_file:
 
         for folder_path in folder_paths:

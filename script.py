@@ -28,7 +28,7 @@ shutil.copytree(docs_script_folder, destination_dir ,dirs_exist_ok=True)
 
 python_file_path = "run_docstring.py"
 
-subprocess.run(["python", python_file_path])
+subprocess.run(["python", python_file_path,destination_repo])
 
 # Change directory to the Python repository
 os.chdir(destination_repo)
