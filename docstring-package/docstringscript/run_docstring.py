@@ -146,13 +146,11 @@ def genai_response_generator(string_definition:str,call_for=Literal["function_do
     llm_object = get_llm_object_for_train_data()
     prompt_response = llm_object.chat([ChatMessage(role="user",
                                             content=function_doc_string_prompt if call_for == "function_doc_string" else class_doc_string_prompt)])
-    print(f"\n\n\n{prompt_response.message.content}\n\n\n")
     return prompt_response.message.content
 
 def get_openapi_doc(method_definition):
     method_responce = genai_response_generator(string_definition=method_definition,call_for="function_doc_string")[3:-3]
     method_responce = method_responce[4:-4]
-    print('method_responcemethod_responcemethod_responce',method_responce)
 
     return method_responce
 
@@ -161,7 +159,6 @@ def get_openapi_doc(method_definition):
 def get_openapi_doc_for_class(class_definition):
     class_responce = genai_response_generator(string_definition=class_definition, call_for="class_doc_string")[3:-3]
     class_responce = class_responce[4:-4]
-    print('class_responceclass_responceclass_responceclass_responceclass_responce',class_responce)
     return  class_responce
 
 
@@ -182,10 +179,8 @@ def update_file_with_docstrings(file_path):
                 # Preserve the existing structure by adding docstrings appropriately
                 docstring = get_openapi_doc(method_definition)
                 if docstring:
-                    print('docstringdocstring',docstring)
                     # Insert the docstring as the first element in the function body
                     docstring = f'{docstring}'
-                    print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',docstring)
                     node.body.insert(0, ast.Expr(ast.Constant(docstring)))
         if isinstance(node, ast.ClassDef):
             # Get the method definition as a string
@@ -215,7 +210,6 @@ def scan_directory_for_adding_docstring(directory):
                 file_path = os.path.join(root, file_name)
                 # threading.Thread(target=update_file_with_docstrings, args=(file_path,)).start()
                 multiprocessing.Process(target=update_file_with_docstrings, args=(file_path,)).start()
-    print(f'Added Docstring to {directory} ')
 
 
 scan_directory_for_adding_docstring(directory_path)
