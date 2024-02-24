@@ -7,20 +7,25 @@ import ast
 import sys
 import time
 from inspect import getsource
+from typing import Literal
 
 import requests
+from llama_index.llms import OpenAI, ChatMessage, LLMMetadata
+
+model="gpt-4-turbo"
+
+### Enter your Credentials
+semicolons_gateway_api_key = "sk-PKh0KGK8XEYngx19_Zmipg" # Insert the provided API key
+semicolons_gateway_base_url = "https://4veynppxjm.us-east-1.awsapprunner.com"
+
 
 # Specify the directory path to scan
 directory_path = sys.argv[1]
-
 def get_multiple_inputs():
-    input_list = []
-    while True:
-        user_input = input("Enter module name for sphinx documentation generation (or 'done' to finish): ")
-        if user_input.lower() == 'done':
-            break
-        input_list.append(directory_path +'/'+ user_input)
-    return input_list
+    user_input = input("Enter module name for sphinx documentation generation with comma separated values: ")
+    splited_value = user_input.split(",")
+    result_list = [directory_path +'/'+ user_input for user_input in splited_value]
+    return result_list
 
 # Get inputs from the user and store in a variable
 folder_paths_list = get_multiple_inputs()
@@ -29,61 +34,135 @@ folder_paths_list = get_multiple_inputs()
 rst_file_path = directory_path+ '/source/package/api.rst'  # Output .rst file
 
 
+
+def get_llm_object_for_train_data():
+
+
+    llm = OpenAI(
+        model=model,
+        api_key=semicolons_gateway_api_key,
+        api_base=semicolons_gateway_base_url,
+        # api_base represents the endpoint the Llama-Index object will make a call to when invoked
+        temperature=0.1
+    )
+
+    # Adjust the below parameters as per the model you've chosen
+    llm.__class__.metadata = LLMMetadata(
+        context_window=4000,
+        num_output=1000,
+        is_chat_model=True,
+        is_function_calling_model=False,
+        model_name=model,
+    )
+    return llm
+
 # To generate and add docstring to methods and classes
+def genai_response_generator(string_definition:str,call_for=Literal["function_doc_string", "class_doc_string"]):
+    function_doc_string_prompt = f'''
+                    For a given function string return doc string in following manner:
+
+                    ```
+                    """def temp1(lenght:float,width:float)->list[float]  \n return [2*(lenght+width)] """
+
+                    ```
+
+
+                    This is the output strictly expected:
+                    ```
+                        """
+                        Calculates the perimeter of a rectangle and returns it as a list with a single float element.
+
+
+                        :param: lenght (float): The length of the rectangle.
+                        :param: width (float) : The width of the rectangle.
+
+                        return: list[float]: A list containing a single float value representing the perimeter of the rectangle.
+                        """
+                      ```
+
+                       Similarly give me for (give me only doc string ignoring function code and no explanation):
+
+                        {string_definition}
+
+                '''
+
+    class_doc_string_prompt = f'''
+                For a given Class in string format 
+
+                    ```
+                    class Rectangle:
+
+                        def __init__(self, length: float = None, width: float = None):
+                            self.length = length
+                            self.width = width
+
+                        def set_dimensions(self, length: float, width: float):
+
+                            self.length = length
+                            self.width = width
+
+                        def calculate_perimeter(self) -> float:
+
+                            if self.length is None or self.width is None:
+                                raise ValueError("Length and width must be set before calculating the perimeter.")
+                            return 2 * (self.length + self.width)
+
+                        def calculate_area(self) -> float:
+                            """
+                            Calculates the area of the rectangle and returns it as a float.
+
+                            return: float: The area of the rectangle.
+                            """
+                            if self.length is None or self.width is None:
+                                raise ValueError("Length and width must be set before calculating the area.")
+                            return self.length * self.width
+
+                    ```
+                    I want only doc string to be generated strictly in this manner
+
+                    ```
+                       """
+                        A class used to represent a Rectangle and perform calculations related to it.
+
+                        Attributes:
+                            length (float): The length of the rectangle. Defaults to None.
+                            width (float): The width of the rectangle. Defaults to None.
+
+                        Methods:
+                            set_dimensions(length: float, width: float)
+                                Sets the dimensions of the rectangle.
+
+                            calculate_perimeter() -> float
+                                Calculates the perimeter of the rectangle and returns it as a float.
+
+                            calculate_area() -> float
+                                Calculates the area of the rectangle and returns it as a float.
+                        """
+                    ```
+
+                    Similarly give me only for below class:
+                    {string_definition}
+              '''
+    llm_object = get_llm_object_for_train_data()
+    prompt_response = llm_object.chat([ChatMessage(role="user",
+                                            content=function_doc_string_prompt if call_for == "function_doc_string" else class_doc_string_prompt)])
+    print(f"\n\n\n{prompt_response.message.content}\n\n\n")
+    return prompt_response.message.content
 
 def get_openapi_doc(method_definition):
-    openapi_url = "https://api.openai.com/v2/engines/davinci-codex/completions"
-    prompt = f"Generate missing docstring for the following method:\n\n{method_definition}"
+    method_responce = genai_response_generator(string_definition=method_definition,call_for="function_doc_string")[3:-3]
+    method_responce = method_responce[4:-4]
+    print('method_responcemethod_responcemethod_responce',method_responce)
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer YOUR_API_KEY"  # Replace YOUR_API_KEY with your actual API key
-    }
+    return method_responce
 
-    data = {
-        "prompt": prompt,
-        "max_tokens": 150
-    }
-
-    response = requests.post(openapi_url, headers=headers, json=data)
-
-    if response.status_code != 200:
-        # docstring = response.json()["choices"][0]["text"]
-        return f"""
-        Some description for the method.
-
-        :param property1: value1
-        :param property2: value2
-        :param property3: value3
-        :return: return_value
-        """
-    else:
-        return "Failed to generate docstring. Please check your request."
 
 
 def get_openapi_doc_for_class(class_definition):
-    openapi_url = "https://api.openai.com/v2/engines/davinci-codex/completions"
-    prompt = f"Generate missing docstring for the following method:\n\n{class_definition}"
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer YOUR_API_KEY"  # Replace YOUR_API_KEY with your actual API key
-    }
-
-    data = {
-        "prompt": prompt,
-        "max_tokens": 150
-    }
-
-    response = requests.post(openapi_url, headers=headers, json=data)
-
-    if response.status_code != 200:
-        # docstring = response.json()["choices"][0]["text"]
-        return f"""
-        Some description for the class definition
-        """
-    else:
-        return "Failed to generate docstring. Please check your request."
+    class_responce = genai_response_generator(string_definition=class_definition, call_for="class_doc_string")[3:-3]
+    class_responce = class_responce[4:-4]
+    print('class_responceclass_responceclass_responceclass_responceclass_responce',class_responce)
+    return  class_responce
 
 
 def update_file_with_docstrings(file_path):
@@ -103,7 +182,10 @@ def update_file_with_docstrings(file_path):
                 # Preserve the existing structure by adding docstrings appropriately
                 docstring = get_openapi_doc(method_definition)
                 if docstring:
+                    print('docstringdocstring',docstring)
                     # Insert the docstring as the first element in the function body
+                    docstring = f'{docstring}'
+                    print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',docstring)
                     node.body.insert(0, ast.Expr(ast.Constant(docstring)))
         if isinstance(node, ast.ClassDef):
             # Get the method definition as a string
@@ -116,6 +198,7 @@ def update_file_with_docstrings(file_path):
                 # Preserve the existing structure by adding docstrings appropriately
                 docstring = get_openapi_doc_for_class(class_definition)
                 if docstring:
+                    docstring = f'{docstring}'
                     # Insert the docstring as the first element in the function body
                     node.body.insert(0, ast.Expr(ast.Constant(docstring)))
 
@@ -190,4 +273,6 @@ def traverse_folders_for_sphinx_api(folder_paths, output_file,base_path):
 
 
 traverse_folders_for_sphinx_api(folder_paths_list, rst_file_path,directory_path)
+
+print('Url to acces Sphinx Documentation:', directory_path + '/build/html/index.html')
 
