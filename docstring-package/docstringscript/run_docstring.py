@@ -268,5 +268,5 @@ def traverse_folders_for_sphinx_api(folder_paths, output_file,base_path):
 
 traverse_folders_for_sphinx_api(folder_paths_list, rst_file_path,directory_path)
 
-print('Url to acces Sphinx Documentation:', directory_path + '/build/html/index.html')
+print('Path to access project documentation:', directory_path + '/build/index.html')
 
